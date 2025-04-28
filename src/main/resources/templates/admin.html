@@ -2,95 +2,412 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Users List</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Admin panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            margin: 0;
+        .sidebar {
+            width: 200px;
+            min-height: calc(100vh - 56px);
+        }
+
+        .main-content {
+            background-color: #f8f9fa;
+            min-height: calc(100vh - 56px);
             padding: 20px;
         }
-        h1 {
-            color: #4CAF50;
-            text-align: center;
+
+        .nav-link.active {
+            font-weight: bold;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+        .tab-content {
+            display: none;
         }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #4CAF50;
-            color: white;
-        }
-        tr:hover {
-            background-color: #f1f1f1;
-        }
-        a {
-            color: #4CAF50;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .actions a {
-            margin-right: 10px;
-        }
-        .add-user {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .add-user:hover {
-            background-color: #45a049;
+
+        .tab-content.active {
+            display: block;
         }
     </style>
 </head>
 <body>
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Admin Panel - User Management</h1>
-    <form th:action="@{/logout}" method="post">
-        <button type="submit" class="btn btn-danger">Logout</button>
-    </form>
+<nav class="navbar navbar-expand navbar-dark bg-dark">
+    <div class="container-fluid">
+        <div class="navbar-text">
+            <span th:text="${user.getUsername()}"></span> with roles:
+            <span th:each="role,iter : ${user.getAuthorities()}">
+                <span th:text="${#strings.substringAfter(role.authority,'ROLE_')}"></span>
+                <span th:if="${!iter.last}"> </span>
+            </span>
+        </div>
+        <form class="d-flex" th:action="@{/logout}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" class="btn btn-danger">Logout</button>
+        </form>
+    </div>
+</nav>
+
+<div class="d-flex">
+    <!-- Сайдбар -->
+    <div class="sidebar bg-light p-3">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="/admin">Admin</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/user">User</a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content flex-grow-1">
+        <h2>Admin panel</h2>
+
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <a href="#" class="nav-link active" onclick="openTab(event, 'users-tab')">Users table</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="openTab(event, 'new-user-tab')">New User</a>
+            </li>
+        </ul>
+
+        <h3><span id="dynamic_text">All Users</span></h3>
+
+        <div id="users-tab" class="tab-content active">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Role</th>
+                        <th>Edit</th>
+                        <th>Delete</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="usertab : ${users}">
+                        <td th:text="${usertab.id}"></td>
+                        <td th:text="${usertab.name}"></td>
+                        <td th:text="${usertab.age}"></td>
+                        <td>
+                                <span th:each="authority,iter : ${usertab.getAuthorities()}">
+                                    <span th:text="${#strings.substringAfter(authority.getAuthority(),'ROLE_')}"></span>
+                                    <span th:if="${!iter.last}">, </span>
+                                </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary"
+                                    th:attr="
+                                    data-id=${usertab.id},
+                                    data-username=${usertab.username},
+                                    data-name=${usertab.name},
+                                    data-age=${usertab.age},
+                                    data-roles=${usertab.getAuthorities()}"
+                                    onclick="openEditModal(this)">Edit
+                            </button>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-danger"
+                                    th:attr="data-id=${usertab.id},
+                                    data-username=${usertab.username},
+                                    data-name=${usertab.name},
+                                    data-age=${usertab.age},
+                                    data-email=${usertab.username},
+                                    data-roles=${usertab.getAuthorities()}"
+                                    onclick="openDeleteModal(this)">Delete
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="new-user-tab" class="tab-content bg-white"> <!-- Добавлен bg-white -->
+            <div class="container-fluid py-4"> <!-- Растягиваем на всю ширину -->
+                <div class="row justify-content-center">
+                    <div class="col-md-8 col-lg-6 col-xl-4"> <!-- Оптимальная ширина формы -->
+
+                            <div class="card-body p-4"> <!-- Увеличили отступы -->
+                                <form th:action="@{/admin/add}" method="post">
+                                    <div class="mb-3">
+                                        <b><label for="username" class="form-label">Username:</label></b>
+                                        <input type="text" class="form-control" id="username" name="username" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <b><label for="name" class="form-label">Name:</label></b>
+                                        <input type="text" class="form-control" id="name" name="name" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <b><label for="age" class="form-label">Age:</label></b>
+                                        <input type="number" class="form-control" id="age" name="age" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <b><label for="password" class="form-label">Password:</label></b>
+                                        <input type="password" class="form-control" id="password" name="password" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <b><label for="roles" class="form-label">Roles:</label></b>
+                                        <select class="form-select" id="roles" name="roles" multiple>
+                                            <option value="ROLE_ADMIN">ADMIN</option>
+                                            <option value="ROLE_USER">USER</option>
+                                        </select>
+                                        <div class="form-text">Hold Ctrl to select multiple roles</div>
+                                    </div>
+                                    <div class="text-center mt-4">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                                        <button type="submit" class="btn btn-primary px-4 py-2">Create User</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<h1>Users List</h1>
-<table>
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Age</th>
-        <th>Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="user : ${users}">
-        <td th:text="${user.id}"></td>
-        <td th:text="${user.name}"></td>
-        <td th:text="${user.age}"></td>
-        <td class="actions">
-            <a th:href="@{/admin/edit/{id}(id=${user.id})}">Edit</a> |
-            <form th:action="@{/admin/delete/{id}(id=${user.id})}" method="post" style="display: inline;">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                <button type="submit" style="background: none; border: none; color: #4CAF50; cursor: pointer;">Delete</button>
-            </form>
-        </td>
-    </tr>
-    </tbody>
-</table>
-<br>
-<a class="add-user" href="/admin/add">Add New User</a>
+
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit user</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="mb-3">
+                        <label for="editId" class="form-label">ID:</label>
+                        <input type="text" class="form-control" id="editId" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editUsername" class="form-label">Username:</label>
+                        <input type="text" class="form-control" id="editUsername" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editName" class="form-label">Name:</label>
+                        <input type="text" class="form-control" id="editName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAge" class="form-label">Age:</label>
+                        <input type="number" class="form-control" id="editAge" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPassword" class="form-label">Password:</label>
+                        <input type="password" class="form-control" id="editPassword"
+                               placeholder="Leave blank to keep current">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editRole" class="form-label">Role:</label>
+                        <select class="form-select" id="editRole" multiple>
+                            <option value="ROLE_ADMIN">ADMIN</option>
+                            <option value="ROLE_USER">USER</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditForm()">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit user</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deleteForm">
+                    <div class="mb-3">
+                        <label for="editId" class="form-label">ID:</label>
+                        <input type="text" class="form-control" id="deleteId" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editUsername" class="form-label">Username:</label>
+                        <input type="text" class="form-control" id="deleteUsername" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editName" class="form-label">Name:</label>
+                        <input type="text" class="form-control" id="deleteName" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAge" class="form-label">Age:</label>
+                        <input type="number" class="form-control" id="deleteAge" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editRole" class="form-label">Role:</label>
+                        <select class="form-select" id="deleteRole" multiple disabled>
+                            <option value="ROLE_ADMIN">ADMIN</option>
+                            <option value="ROLE_USER">USER</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" onclick="submitDeleteForm()">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function openTab(evt, tabName) {
+        var tabContents = document.getElementsByClassName("tab-content");
+        for (var i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
+        }
+
+        var tabButtons = document.querySelectorAll(".nav-tabs .nav-link");
+        for (var i = 0; i < tabButtons.length; i++) {
+            tabButtons[i].classList.remove("active");
+        }
+
+        var dynamicText = document.getElementById("dynamic_text");
+        if (tabName === 'users-tab') {
+            dynamicText.textContent = "All Users";
+        } else if (tabName === 'new-user-tab') {
+            dynamicText.textContent = "Add New User";
+        }
+
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    var editModal = new bootstrap.Modal(document.getElementById('editModal'));
+
+    function openEditModal(button) {
+        const id = button.getAttribute('data-id');
+        const username = button.getAttribute('data-username');
+        const name = button.getAttribute('data-name');
+        const age = button.getAttribute('data-age');
+        const roles = button.getAttribute('data-roles').split(',');
+
+        document.getElementById('editId').value = id;
+        document.getElementById('editUsername').value = username;
+        document.getElementById('editName').value = name;
+        document.getElementById('editAge').value = age;
+
+        const roleSelect = document.getElementById('editRole');
+        Array.from(roleSelect.options).forEach(option => {
+            option.selected = roles.includes(option.value);
+        });
+
+        editModal.show();
+    }
+
+    function closeEditModal() {
+        editModal.hide();
+    }
+
+    function submitEditForm() {
+        const formData = {
+            id: document.getElementById('editId').value,
+            username: document.getElementById('editUsername').value,
+            name: document.getElementById('editName').value,
+            age: document.getElementById('editAge').value,
+            password: document.getElementById('editPassword').value,
+            roles: Array.from(document.getElementById('editRole').selectedOptions)
+                .map(option => option.value)
+        };
+
+        const form = new FormData();
+        form.append('id', formData.id);
+        form.append('username', formData.username);
+        form.append('name', formData.name);
+        form.append('age', formData.age);
+        if (formData.password) {
+            form.append('password', formData.password);
+        }
+        formData.roles.forEach(role => form.append('roles', role));
+
+        fetch('/admin/edit', {
+            method: 'POST',
+            body: form,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_csrf"]').value
+            }
+        })
+            .then(response => {
+                if (response.ok) {
+                    // Закрываем модальное окно и обновляем страницу
+                    closeEditModal();
+                    window.location.reload();
+                } else {
+                    alert('Ошибка при обновлении пользователя');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при отправке данных');
+            });
+
+        console.log('Editing user:', formData);
+
+        closeEditModal();
+    }
+
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+    function openDeleteModal(button) {
+        const id = button.getAttribute('data-id');
+        const username = button.getAttribute('data-username');
+        const name = button.getAttribute('data-name');
+        const age = button.getAttribute('data-age');
+        const roles = button.getAttribute('data-roles').split(',');
+
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteUsername').value = username;
+        document.getElementById('deleteName').value = name;
+        document.getElementById('deleteAge').value = age;
+
+        // Очистка и установка ролей
+        const roleSelect = document.getElementById('deleteRole');
+        Array.from(roleSelect.options).forEach(option => {
+            option.selected = roles.includes(option.value);
+        });
+
+        deleteModal.show();
+    }
+
+    function closeDeleteModal() {
+        deleteModal.hide();
+    }
+
+    function submitDeleteForm() {
+        const userId = document.getElementById('deleteId').value;
+
+        fetch(`/admin/delete/${userId}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_csrf"]').value
+            }
+        })
+            .then(response => {
+                if (response.ok) {
+                    // Закрываем модальное окно и обновляем страницу
+                    closeDeleteModal();
+                    window.location.reload();
+                } else {
+                    alert('Ошибка при удалении пользователя');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Произошла ошибка при отправке запроса');
+            });
+    }
+
+</script>
 </body>
 </html>

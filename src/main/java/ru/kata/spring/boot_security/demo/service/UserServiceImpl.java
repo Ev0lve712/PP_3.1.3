@@ -1,20 +1,19 @@
 package ru.kata.spring.boot_security.demo.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.kata.spring.boot_security.demo.dao.RoleDao;
 import ru.kata.spring.boot_security.demo.dao.UserDao;
 import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,17 +21,16 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserDetailsService, UserService {
 
     private final UserDao userDao;
-    private final RoleDao roleDao;
 
     @Autowired
-    public UserServiceImpl(UserDao userDao, RoleDao roleDao) {
+    public UserServiceImpl(UserDao userDao) {
         if (userDao == null) {
             throw new IllegalArgumentException("UserDao null");
         }
         this.userDao = userDao;
-        this.roleDao = roleDao;
     }
 
+    @Override
     public User findByUsername(String username) {
         return userDao.findByUsername(username);
     }
@@ -51,8 +49,7 @@ public class UserServiceImpl implements UserDetailsService, UserService {
         newUser.setName(user.getName());
         newUser.setAge(user.getAge());
         newUser.setPassword(encoder.encode(user.getPassword()));
-        Role userRole = roleDao.findByName("ROLE_USER");
-        newUser.setRoles(Collections.singleton(userRole));
+        newUser.setRoles(user.getAuthorities());
 
         userDao.save(newUser);
     }
@@ -64,6 +61,8 @@ public class UserServiceImpl implements UserDetailsService, UserService {
 
     @Override
     public void edit(User user) {
+        var newPassword = user.getPassword();
+        user.setPassword(encoder.encode(newPassword));
         userDao.save(user);
     }
 

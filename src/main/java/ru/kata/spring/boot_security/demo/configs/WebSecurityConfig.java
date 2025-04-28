@@ -23,6 +23,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     public WebSecurityConfig(SuccessUserHandler successUserHandler) {
         this.successUserHandler = successUserHandler;
     }
+
     @Autowired
     public void setUserServiceImpl(UserServiceImpl userServiceImpl) {
         this.userServiceImpl = userServiceImpl;
@@ -32,16 +33,21 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                    .antMatchers("/", "/login").permitAll()
-                    .antMatchers("/user/**").hasRole("USER")
-                    .antMatchers("/admin/**").hasRole("ADMIN")
+                .antMatchers("/", "/login").permitAll()
+                .antMatchers("/user/**").hasRole("USER")
+                .antMatchers("/admin/**").hasRole("ADMIN")
                 .and()
-                    .formLogin()
-                    .successHandler(successUserHandler)
+
+                .formLogin()
+                .successHandler(successUserHandler)
+                .loginPage("/")
+                .loginProcessingUrl("/login")
                 .and()
-                    .exceptionHandling()
-                        .accessDeniedPage("/403")
+
+                .exceptionHandling()
+                .accessDeniedPage("/403")
                 .and()
+
                 .logout().logoutSuccessUrl("/");
     }
 
