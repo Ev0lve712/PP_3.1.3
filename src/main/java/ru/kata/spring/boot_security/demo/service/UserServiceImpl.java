@@ -10,9 +10,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.kata.spring.boot_security.demo.dao.UserDao;
+import ru.kata.spring.boot_security.demo.dto.UserDto;
 import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,6 +36,7 @@ public class UserServiceImpl implements UserDetailsService, UserService {
     }
 
     @Override
+    @Transactional
     public List<User> allUsers() {
         return userDao.findAll();
     }
@@ -43,30 +44,43 @@ public class UserServiceImpl implements UserDetailsService, UserService {
     BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     @Override
-    public void add(User user) {
-        User newUser = new User();
-        newUser.setUsername(user.getUsername());
-        newUser.setName(user.getName());
-        newUser.setAge(user.getAge());
-        newUser.setPassword(encoder.encode(user.getPassword()));
-        newUser.setRoles(user.getAuthorities());
-
-        userDao.save(newUser);
+    public User add(UserDto userDto) {
+        User user = new User();
+        user.setUsername(userDto.getUsername());
+        user.setName(userDto.getName());
+        user.setAge(userDto.getAge());
+        user.setPassword(encoder.encode(userDto.getPassword()));
+        user.setRoles(userDto.getAuthorities());
+        userDao.save(user);
+        System.out.println("Roles userDto: " + userDto.getAuthorities());
+        return user;
     }
 
     @Override
+    @Transactional
     public void delete(Long userId) {
         userDao.deleteById(userId);
     }
 
     @Override
-    public void edit(User user) {
-        var newPassword = user.getPassword();
-        user.setPassword(encoder.encode(newPassword));
+    public User edit(UserDto userDto) {
+        User user = userDao.findByUsername(userDto.getUsername());
+        user.setUsername(userDto.getUsername());
+        user.setName(userDto.getName());
+        user.setAge(userDto.getAge());
+        if (userDto.getPassword() != null) {
+            user.setPassword(encoder.encode(userDto.getPassword()));
+        } else {
+            user.setPassword(user.getPassword());
+        }
+        user.setRoles(userDto.getAuthorities());
+        System.out.println("Roles userDto: " + userDto.getAuthorities());
         userDao.save(user);
+        return user;
     }
 
     @Override
+    @Transactional
     public User getById(Long id) {
         return userDao.findById(id).orElse(null);
     }

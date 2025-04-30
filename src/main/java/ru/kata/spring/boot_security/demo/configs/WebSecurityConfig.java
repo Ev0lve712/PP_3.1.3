@@ -1,5 +1,6 @@
 package ru.kata.spring.boot_security.demo.configs;
 
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,9 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import ru.kata.spring.boot_security.demo.convertor.RoleDeserializer;
+import ru.kata.spring.boot_security.demo.dao.RoleDao;
+import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.service.UserServiceImpl;
 
 import javax.sql.DataSource;
@@ -48,7 +52,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .accessDeniedPage("/403")
                 .and()
 
-                .logout().logoutSuccessUrl("/");
+                .logout();
     }
 
     @Bean
@@ -68,5 +72,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         authProvider.setUserDetailsService(userServiceImpl);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
+    }
+    @Bean
+    public SimpleModule roleDeserializerModule(RoleDao roleDao) {
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(Role.class, new RoleDeserializer(roleDao));
+        return module;
     }
 }
